@@ -1,0 +1,25 @@
+# Logs
+logs
+*.log
+*.pyc
+__pycache__/
+.cache/
+
+# OS generated files #
+.DS_Store
+ehthumbs.db
+Icon?
+Thumbs.db
+
+
+# IDE #
+.idea/
+*.swp
+
+xxx*
+---*
+___*
+tmp/
+/conf/
+/env
+astlog.egg-info/

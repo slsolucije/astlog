@@ -1,0 +1,2 @@
+tar czf ../_astlog.tgz --directory=.. astlog --exclude="env" --exclude="*.pyc" --exclude=".idea" --exclude="__pycache__" --exclude="*.tgz"
+echo ../_astlog.tgz
