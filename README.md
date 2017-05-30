@@ -33,3 +33,6 @@ usage: astlog [-h] [--cdr-file CDR_FILE] [--from-when FROM_WHEN]
               log_file
 ```
 
+![Viewing a call - 1](https://github.com/slsolucije/astlog/blob/master/doc/astlog1.png)
+
+![Viewing a call - 2](https://github.com/slsolucije/astlog/blob/master/doc/astlog2.png)
