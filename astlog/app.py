@@ -13,6 +13,7 @@ from urwid import (Text, Edit, AttrWrap, BoxWidget, ListWalker, ListBox,
 
 from astlog.reader import LogParser, LogParserError, parse_when
 
+_bytes3 = str if sys.version_info < (3,0,0) else bytes
 
 log = logging.getLogger('astlog.app')
 
@@ -598,8 +599,9 @@ class LogLineWalker(ListWalker):
 
 
 class LogDisplay(BoxWidget):
-    def __init__(self, parser):
+    def __init__(self, parser, encoding):
         self.parser = parser
+        self.encoding = encoding
         self.find = {'ref': '', 'text': ''}
         self.isolate_filter = (None, None)
         self.line_collection = None
@@ -746,7 +748,7 @@ class LogDisplay(BoxWidget):
         elif ref_type == 'sip_ref':
             sip = self.parser.find_obj(ref_type, ref)
             instructions = sip_payload_instructions(sip)
-            markups = [(s, m) for (l, s, m) in instructions]
+            markups = [(s, m) for (_l, s, m) in instructions]
         elif ref_type == 'chan':
             channel = self.parser.find_obj(ref_type, ref)
             markups = dial_chart(channel)
@@ -884,6 +886,9 @@ class LogDisplay(BoxWidget):
             lc.add(('section', 'Log'))
             old_line_no = None
             for line_no, (style, obj) in flat:
+                # Text is kept as bytes, convert to unicode only when displaying
+                if isinstance(obj, _bytes3):
+                    obj = obj.decode(self.encoding, errors='replace')
                 if old_line_no is not None and old_line_no + 1 != line_no:
                     # If Missing single unimportant line, omit "..."
                     if not (style == 'sip' and old_line_no + 2 == line_no):
@@ -958,7 +963,7 @@ class LogDisplay(BoxWidget):
 
 
 class App(object):
-    def __init__(self, parser):
+    def __init__(self, parser, encoding):
         self.loop = None
         self.parser = parser
         self.panel_focus = 1
@@ -973,7 +978,7 @@ class App(object):
         connect_signal(self.sidebar, 'select', self.on_result_selected)
         connect_signal(self.sidebar, 'search', self.on_search)
 
-        self.log_display = LogDisplay(parser)
+        self.log_display = LogDisplay(parser, encoding)
 
         self.cols = Columns([
             ('fixed', 20, self.sidebar),
@@ -1105,7 +1110,7 @@ class App(object):
         self.loop.set_alarm_in(0, lambda loop, data: self.reload_file())
         try:
             self.loop.run()
-        except Exception as e:
+        except Exception:
             self.loop.stop()
             print(traceback.format_exc())
 
@@ -1124,6 +1129,8 @@ def main():
     parser.add_argument('--tail-minutes', dest='tail_minutes', type=int)
     parser.add_argument('--log-output', dest='log_output')
     parser.add_argument('--use-memory-pct', dest='use_memory_pct', type=int)
+    parser.add_argument('--encoding', dest='encoding', default='utf-8',
+                        help='log_file encoding')
 
     args = parser.parse_args()
 
@@ -1137,9 +1144,10 @@ def main():
         log.debug('astlog started')
 
     try:
-        parser = LogParser(args.log_file, args.cdr_file, args.from_when,
-                           args.to_when, args.tail_minutes, args.use_memory_pct)
-        app = App(parser)
+        log_parser = LogParser(args.log_file, args.cdr_file, args.from_when,
+                               args.to_when, args.tail_minutes,
+                               args.use_memory_pct)
+        app = App(log_parser, args.encoding)
         app.run()
     except LogParserError as e:
         log.exception('parse error')

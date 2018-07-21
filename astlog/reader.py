@@ -473,6 +473,10 @@ class LogQueue(object):
 
 
 class LogParser(object):
+    # Text is analysed and kept as bytes to avoid converting gigabytes of data
+    # and to avoid potentially using double amount of memory for storage 
+    # (in some versions of python, unicode is internally represended as wchar)
+
     def __init__(self, filename, cdr_filename=None,
             from_when=None, to_when=None, tail_minutes=None,
             use_memory_pct=None):
@@ -712,6 +716,8 @@ class LogParser(object):
             channel = self.channels.get(chan)
             if channel:
                 channel.clid_name, channel.clid_num = caller_id
+                self.phone_channel_map.setdefault(channel.clid_num, set()) \
+                    .add(channel)
 
     def sip(self, line_no, direction, peer_addr, is_nat, when, acall,
             intro_line=None):
@@ -1254,7 +1260,7 @@ class LogParser(object):
 
                 if obj:
                     for g in all_groups:
-                        for l, w, o in g.overview:
+                        for _l, w, o in g.overview:
                             if w == find and o == obj:
                                 return [g]
                     return []
@@ -1301,7 +1307,7 @@ def find_file_position(f, when, direction='after', is_cdr=False):
 
     file_pos, a, b = 0, 0, size
     good_pos = None
-    for cnt in range(40):
+    for _cnt in range(40):
         new_file_pos = a + (b - a) / 2
         if new_file_pos == file_pos:
             break
